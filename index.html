@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color"="#2563eb" />
   <title>チーム分けメーカー</title>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <style>
     :root {
       --primary: #2563eb;
@@ -56,14 +57,18 @@
     .star { border: 0; border-left: 1px solid #e1e6ee; background: #fff; width: 40px; min-height: 40px; font-size: 19px; color: #aab3c1; }
     .chip.experienced { border-color: #f6be55; background: #fffaf0; }
     .chip.experienced .star { color: #f59e0b; background: #fff7df; }
+    .legend { margin: 8px 0 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+    .legend strong { color: #b45309; }
     .controls { display: grid; grid-template-columns: 1fr 1.5fr; gap: 10px; margin-top: 18px; }
-    select.field { appearance: none; background-image: linear-gradient(45deg, transparent 50%, #697386 50%), linear-gradient(135deg, #697386 50%, transparent 50%); background-position: calc(100% - 17px) 20px, calc(100% - 12px) 20px; background-size: 5px 5px; background-repeat: no-repeat; }
+    select.field { appearance: none; background-image: linear-gradient(45deg, transparent 50%, #697386 50%), linear-gradient(135deg, #697386 50%, transparent 50%); background-position: calc(100% - 17px) 50%, calc(100% - 12px) 50%; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; padding-right: 34px; }
     .primary { height: 50px; border: 0; border-radius: 12px; background: var(--primary); color: #fff; font-weight: 900; box-shadow: 0 7px 16px rgba(37,99,235,.22); }
     .primary:active { transform: translateY(1px); background: var(--primary-dark); }
     .primary:disabled { opacity: .55; cursor: not-allowed; box-shadow: none; }
     .results-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 22px 0 10px; }
     .results-head h2 { margin: 0; font-size: 17px; }
-    .copy { min-height: 42px; border: 1.5px solid #bcd0fa; border-radius: 10px; background: #fff; color: var(--primary-dark); font-weight: 900; padding: 0 12px; }
+    .result-actions { display: flex; gap: 8px; }
+    .copy, .screenshot { min-height: 42px; border: 1.5px solid #bcd0fa; border-radius: 10px; background: #fff; color: var(--primary-dark); font-weight: 900; padding: 0 12px; }
+    .copy:disabled, .screenshot:disabled { opacity: .55; cursor: not-allowed; }
     .teams { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
     .team-card { border-radius: 16px; padding: 14px; color: #fff; min-height: 128px; box-shadow: 0 6px 16px rgba(31,41,55,.10); }
     .team-card h3 { margin: 0 0 10px; font-size: 16px; }
@@ -74,10 +79,18 @@
     .green { background: #16a34a; } .orange { background: #ea580c; } .purple { background: #7c3aed; }
     .yellow li { color: #fff; background: rgba(70,58,15,.24); }
     .empty { grid-column: 1/-1; text-align: center; color: var(--muted); background: #fff; border: 1px dashed #cbd4e1; border-radius: 14px; padding: 22px 12px; }
-    .toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px); background: #1f2937; color: #fff; border-radius: 999px; padding: 11px 16px; opacity: 0; pointer-events: none; transition: .22s ease; z-index: 10; font-weight: 800; font-size: 13px; }
+    .toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px); background: #1f2937; color: #fff; border-radius: 999px; padding: 11px 16px; opacity: 0; pointer-events: none; transition: .2s; z-index: 20; }
     .toast.show { opacity: 1; transform: translate(-50%, 0); }
     @media (min-width: 700px) { .teams { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-    @media (max-width: 430px) { .app { padding: 14px 10px 30px; } .panel { padding: 14px; border-radius: 15px; } .controls { grid-template-columns: 1fr; } .teams { gap: 8px; } .team-card { padding: 12px 10px; } }
+    @media (max-width: 430px) {
+      .app { padding: 14px 10px 30px; }
+      .panel { padding: 14px; border-radius: 15px; }
+      .controls { grid-template-columns: 1fr; }
+      .teams { gap: 8px; }
+      .team-card { padding: 12px; }
+      .result-actions { gap: 6px; }
+      .copy, .screenshot { padding: 0 9px; font-size: 12px; }
+    }
   </style>
 </head>
 <body>
@@ -94,7 +107,7 @@
         <label for="numberRange">出席番号の範囲（1〜60番）</label>
         <div class="number-row">
           <input id="numberRange" class="field" type="text" inputmode="numeric" value="1-30" placeholder="例：1-30 または 1,3,5-8" />
-          <button id="generateNumbers" class="secondary">番号を���成</button>
+          <button id="generateNumbers" class="secondary">番号を生成</button>
         </div>
         <p class="hint">範囲指定「1-30」のほか、「1,3,5-8」も使えます</p>
       </div>
@@ -109,6 +122,7 @@
         <h2>参加メンバー</h2>
         <span id="memberCount" class="count">0人（欠席 0人）</span>
       </div>
+      <p class="legend"><strong>★経験者：</strong>チーム分けで各チームにできるだけ均等に配分される人です。</p>
       <div id="memberList" class="member-list"></div>
 
       <div class="controls">
@@ -125,7 +139,10 @@
 
     <div class="results-head">
       <h2 id="resultTitle">チーム結果</h2>
-      <button id="copyResult" class="copy" disabled>結果をコピー</button>
+      <div class="result-actions">
+        <button id="screenshotResult" class="screenshot" disabled>スクショ保存</button>
+        <button id="copyResult" class="copy" disabled>結果をコピー</button>
+      </div>
     </div>
     <div id="teams" class="teams"><div class="empty">メンバーを登録して「チームを作る」を押してください</div></div>
   </main>
@@ -196,7 +213,7 @@
         nameBtn.className = 'chip-name';
         nameBtn.type = 'button';
         nameBtn.textContent = member.name;
-        nameBtn.title = 'タップで欠��を切り替え';
+        nameBtn.title = 'タップで欠席を切り替え';
         nameBtn.addEventListener('click', () => { member.absent = !member.absent; renderMembers(); clearResults(); });
 
         const star = document.createElement('button');
@@ -216,6 +233,7 @@
       lastTeams = [];
       $('#teams').innerHTML = '<div class="empty">メンバーや設定を変更しました。もう一度「チームを作る」を押してください</div>';
       $('#copyResult').disabled = true;
+      $('#screenshotResult').disabled = true;
     }
 
     function shuffled(array) {
@@ -236,24 +254,19 @@
       const regular = shuffled(present.filter(m => !m.experienced));
       const teams = Array.from({length: teamCount}, () => []);
 
-      // Balance experienced members one at a time across teams.
-      let teamIndex = 0;
       experienced.forEach(member => {
         let candidates = teams.map((team, i) => ({ team, i }))
           .filter(x => !x.team.some(m => m.name === member.name));
         candidates.sort((a,b) => a.team.length - b.team.length || a.i - b.i);
         candidates[0].team.push(member);
-        teamIndex = (candidates[0].i + 1) % teamCount;
       });
 
-      // Fill while alternating the smallest team to keep team sizes balanced.
       regular.forEach(member => {
         const smallest = teams.map((team,i) => ({team,i}))
           .sort((a,b) => a.team.length - b.team.length || a.i - b.i)[0];
         smallest.team.push(member);
       });
 
-      // Randomize each team's display order.
       teams.forEach(team => team.splice(0, team.length, ...shuffled(team)));
       lastTeams = teams;
       renderTeams(teams);
@@ -278,6 +291,7 @@
         container.appendChild(card);
       });
       $('#copyResult').disabled = false;
+      $('#screenshotResult').disabled = false;
       $('#resultTitle').textContent = `チーム結果（計${teams.reduce((n,t) => n+t.length,0)}人）`;
     }
 
@@ -298,6 +312,35 @@
         area.remove();
       }
       showToast('結果をコピーしました');
+    });
+
+    $('#screenshotResult').addEventListener('click', async () => {
+      if (!lastTeams.length) return;
+      if (typeof html2canvas !== 'function') {
+        showToast('スクショ機能を読み込めませんでした');
+        return;
+      }
+
+      const button = $('#screenshotResult');
+      button.disabled = true;
+      button.textContent = '保存中...';
+      try {
+        const canvas = await html2canvas($('#teams'), {
+          scale: 2,
+          backgroundColor: '#f4f7fb',
+          useCORS: true
+        });
+        const link = document.createElement('a');
+        link.download = `チーム分け結果_${new Date().toISOString().slice(0,10)}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        showToast('スクショを保存しました');
+      } catch (error) {
+        showToast('スクショに失敗しました');
+      } finally {
+        button.disabled = false;
+        button.textContent = 'スクショ保存';
+      }
     });
 
     function showToast(message) {
