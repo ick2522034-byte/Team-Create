@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color"="#2563eb" />
+  <title>チーム分けメーカー</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --ink: #1f2937;
+      --muted: #697386;
+      --bg: #f4f7fb;
+      --card: #fff;
+      --line: #dde4ef;
+      --green: #16a34a;
+      --red: #dc2626;
+      --yellow: #ca8a04;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", sans-serif;
+      color: var(--ink);
+      background: linear-gradient(180deg, #edf4ff 0, var(--bg) 280px);
+      min-height: 100vh;
+    }
+    button, input, textarea, select { font: inherit; }
+    button { cursor: pointer; }
+    .app { width: min(980px, 100%); margin: 0 auto; padding: 20px 16px 40px; }
+    header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    h1 { margin: 0; font-size: clamp(20px, 5vw, 28px); letter-spacing: .02em; }
+    .badge { background: #dbeafe; color: #1d4ed8; border-radius: 999px; padding: 7px 11px; font-size: 12px; font-weight: 800; }
+    .panel { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 18px; box-shadow: 0 8px 24px rgba(31,41,55,.06); }
+    .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #eef2f7; padding: 5px; border-radius: 12px; margin-bottom: 14px; }
+    .tab { border: 0; background: transparent; color: var(--muted); border-radius: 9px; padding: 11px 8px; font-weight: 800; }
+    .tab.active { background: #fff; color: var(--primary); box-shadow: 0 2px 8px rgba(31,41,55,.08); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    label { display: block; font-size: 13px; font-weight: 800; margin-bottom: 8px; }
+    .number-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end; }
+    .field { height: 46px; border: 1.5px solid var(--line); border-radius: 11px; padding: 0 12px; width: 100%; background: #fff; outline: none; }
+    .field:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px #2563eb18; }
+    textarea.field { height: 145px; padding: 11px 12px; resize: vertical; line-height: 1.6; }
+    .secondary { min-height: 46px; border: 0; border-radius: 11px; padding: 0 14px; background: #eaf2ff; color: var(--primary-dark); font-weight: 900; }
+    .hint { color: var(--muted); font-size: 12px; margin: 7px 0 0; }
+    .section-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 18px 0 10px; }
+    .section-title h2 { font-size: 16px; margin: 0; }
+    .count { color: var(--muted); font-size: 12px; font-weight: 800; }
+    .member-list { display: flex; flex-wrap: wrap; gap: 8px; min-height: 44px; }
+    .chip { display: inline-flex; align-items: center; min-height: 42px; border: 1.5px solid #d5deeb; background: #f9fbfd; border-radius: 999px; overflow: hidden; }
+    .chip-name { border: 0; background: transparent; min-height: 40px; padding: 0 10px 0 13px; color: var(--ink); font-weight: 800; }
+    .chip.absent { border-style: dashed; border-color: #adb6c4; background: #eef0f3; }
+    .chip.absent .chip-name { color: #8b93a1; text-decoration: line-through; }
+    .star { border: 0; border-left: 1px solid #e1e6ee; background: #fff; width: 40px; min-height: 40px; font-size: 19px; color: #aab3c1; }
+    .chip.experienced { border-color: #f6be55; background: #fffaf0; }
+    .chip.experienced .star { color: #f59e0b; background: #fff7df; }
+    .controls { display: grid; grid-template-columns: 1fr 1.5fr; gap: 10px; margin-top: 18px; }
+    select.field { appearance: none; background-image: linear-gradient(45deg, transparent 50%, #697386 50%), linear-gradient(135deg, #697386 50%, transparent 50%); background-position: calc(100% - 17px) 20px, calc(100% - 12px) 20px; background-size: 5px 5px; background-repeat: no-repeat; }
+    .primary { height: 50px; border: 0; border-radius: 12px; background: var(--primary); color: #fff; font-weight: 900; box-shadow: 0 7px 16px rgba(37,99,235,.22); }
+    .primary:active { transform: translateY(1px); background: var(--primary-dark); }
+    .primary:disabled { opacity: .55; cursor: not-allowed; box-shadow: none; }
+    .results-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 22px 0 10px; }
+    .results-head h2 { margin: 0; font-size: 17px; }
+    .copy { min-height: 42px; border: 1.5px solid #bcd0fa; border-radius: 10px; background: #fff; color: var(--primary-dark); font-weight: 900; padding: 0 12px; }
+    .teams { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .team-card { border-radius: 16px; padding: 14px; color: #fff; min-height: 128px; box-shadow: 0 6px 16px rgba(31,41,55,.10); }
+    .team-card h3 { margin: 0 0 10px; font-size: 16px; }
+    .team-card ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+    .team-card li { background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.22); border-radius: 8px; padding: 7px 8px; font-weight: 800; font-size: 14px; }
+    .team-card li.experienced::after { content: " ★"; }
+    .red { background: #dc2626; } .blue { background: #2563eb; } .yellow { background: #eab308; color: #3f3f46; }
+    .green { background: #16a34a; } .orange { background: #ea580c; } .purple { background: #7c3aed; }
+    .yellow li { color: #fff; background: rgba(70,58,15,.24); }
+    .empty { grid-column: 1/-1; text-align: center; color: var(--muted); background: #fff; border: 1px dashed #cbd4e1; border-radius: 14px; padding: 22px 12px; }
+    .toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px); background: #1f2937; color: #fff; border-radius: 999px; padding: 11px 16px; opacity: 0; pointer-events: none; transition: .22s ease; z-index: 10; font-weight: 800; font-size: 13px; }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    @media (min-width: 700px) { .teams { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media (max-width: 430px) { .app { padding: 14px 10px 30px; } .panel { padding: 14px; border-radius: 15px; } .controls { grid-template-columns: 1fr; } .teams { gap: 8px; } .team-card { padding: 12px 10px; } }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header><h1>チーム分けメーカー</h1><span class="badge">体育・球技大会</span></header>
+
+    <section class="panel">
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-tab="numbers" role="tab">出席番号</button>
+        <button class="tab" data-tab="names" role="tab">名前リスト</button>
+      </div>
+
+      <div id="numbers" class="tab-panel active">
+        <label for="numberRange">出席番号の範囲（1〜60番）</label>
+        <div class="number-row">
+          <input id="numberRange" class="field" type="text" inputmode="numeric" value="1-30" placeholder="例：1-30 または 1,3,5-8" />
+          <button id="generateNumbers" class="secondary">番号を���成</button>
+        </div>
+        <p class="hint">範囲指定「1-30」のほか、「1,3,5-8」も使えます</p>
+      </div>
+
+      <div id="names" class="tab-panel">
+        <label for="nameList">名前を改行で貼り付け</label>
+        <textarea id="nameList" class="field" placeholder="山田太郎&#10;佐藤花子&#10;鈴木一郎"></textarea>
+        <button id="addNames" class="secondary" style="width:100%;margin-top:9px">名前を追加</button>
+      </div>
+
+      <div class="section-title">
+        <h2>参加メンバー</h2>
+        <span id="memberCount" class="count">0人（欠席 0人）</span>
+      </div>
+      <div id="memberList" class="member-list"></div>
+
+      <div class="controls">
+        <div>
+          <label for="teamCount">チーム数</label>
+          <select id="teamCount" class="field">
+            <option value="2">2チーム</option><option value="3">3チーム</option><option value="4">4チーム</option>
+            <option value="5">5チーム</option><option value="6">6チーム</option>
+          </select>
+        </div>
+        <button id="createTeams" class="primary" style="align-self:end">チームを作る</button>
+      </div>
+    </section>
+
+    <div class="results-head">
+      <h2 id="resultTitle">チーム結果</h2>
+      <button id="copyResult" class="copy" disabled>結果をコピー</button>
+    </div>
+    <div id="teams" class="teams"><div class="empty">メンバーを登録して「チームを作る」を押してください</div></div>
+  </main>
+  <div id="toast" class="toast" role="status"></div>
+
+  <script>
+    const $ = (sel) => document.querySelector(sel);
+    let members = [];
+    let lastTeams = [];
+
+    const teamStyles = [
+      { name: '赤ビブス', cls: 'red' }, { name: '青ビブス', cls: 'blue' },
+      { name: '黄ビブス', cls: 'yellow' }, { name: '緑ビブス', cls: 'green' },
+      { name: 'オレンジ', cls: 'orange' }, { name: '紫ビブス', cls: 'purple' }
+    ];
+
+    document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      $('#' + tab.dataset.tab).classList.add('active');
+    }));
+
+    function normalizeNameList(text) {
+      return [...new Set(text.split(/\n|\r/).map(s => s.trim()).filter(Boolean))];
+    }
+
+    function mergeMembers(names) {
+      names.forEach(name => {
+        if (!members.some(m => m.name === name)) members.push({ name, absent: false, experienced: false });
+      });
+      renderMembers();
+    }
+
+    $('#generateNumbers').addEventListener('click', () => {
+      const input = $('#numberRange').value.trim();
+      const numbers = new Set();
+      if (!input) return;
+      input.split(',').forEach(part => {
+        const range = part.trim().match(/^([0-9]+)(?:-([0-9]+))?$/);
+        if (!range) return;
+        const start = Math.min(Number(range[1]), Number(range[2] || range[1]), 60);
+        const end = Math.min(Math.max(Number(range[1]), Number(range[2] || range[1])), 60);
+        for (let n = Math.max(1, start); n <= end; n++) numbers.add(n);
+      });
+      const names = [...numbers].sort((a,b) => a-b).map(n => `${n}番`);
+      if (!names.length) { showToast('番号の形式を確認してください'); return; }
+      mergeMembers(names);
+      showToast(`${names.length}人分の番号を追加しました`);
+    });
+
+    $('#addNames').addEventListener('click', () => {
+      const names = normalizeNameList($('#nameList').value);
+      if (!names.length) { showToast('名前を入力してください'); return; }
+      mergeMembers(names);
+      $('#nameList').value = '';
+      showToast(`${names.length}人分の名前を追加しました`);
+    });
+
+    function renderMembers() {
+      const list = $('#memberList');
+      list.innerHTML = '';
+      members.forEach((member, index) => {
+        const chip = document.createElement('div');
+        chip.className = 'chip' + (member.absent ? ' absent' : '') + (member.experienced ? ' experienced' : '');
+
+        const nameBtn = document.createElement('button');
+        nameBtn.className = 'chip-name';
+        nameBtn.type = 'button';
+        nameBtn.textContent = member.name;
+        nameBtn.title = 'タップで欠��を切り替え';
+        nameBtn.addEventListener('click', () => { member.absent = !member.absent; renderMembers(); clearResults(); });
+
+        const star = document.createElement('button');
+        star.className = 'star'; star.type = 'button'; star.title = '経験者にする'; star.textContent = '★';
+        star.setAttribute('aria-label', `${member.name}を経験者にする`);
+        star.addEventListener('click', () => { member.experienced = !member.experienced; renderMembers(); clearResults(); });
+
+        chip.append(nameBtn, star);
+        list.appendChild(chip);
+      });
+      const present = members.filter(m => !m.absent).length;
+      const absent = members.filter(m => m.absent).length;
+      $('#memberCount').textContent = `${present}人（欠席 ${absent}人）`;
+    }
+
+    function clearResults() {
+      lastTeams = [];
+      $('#teams').innerHTML = '<div class="empty">メンバーや設定を変更しました。もう一度「チームを作る」を押してください</div>';
+      $('#copyResult').disabled = true;
+    }
+
+    function shuffled(array) {
+      const copy = [...array];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function makeTeams() {
+      const present = members.filter(m => !m.absent);
+      const teamCount = Number($('#teamCount').value);
+      if (!present.length) { showToast('参加メンバーを登録してください'); return; }
+
+      const experienced = shuffled(present.filter(m => m.experienced));
+      const regular = shuffled(present.filter(m => !m.experienced));
+      const teams = Array.from({length: teamCount}, () => []);
+
+      // Balance experienced members one at a time across teams.
+      let teamIndex = 0;
+      experienced.forEach(member => {
+        let candidates = teams.map((team, i) => ({ team, i }))
+          .filter(x => !x.team.some(m => m.name === member.name));
+        candidates.sort((a,b) => a.team.length - b.team.length || a.i - b.i);
+        candidates[0].team.push(member);
+        teamIndex = (candidates[0].i + 1) % teamCount;
+      });
+
+      // Fill while alternating the smallest team to keep team sizes balanced.
+      regular.forEach(member => {
+        const smallest = teams.map((team,i) => ({team,i}))
+          .sort((a,b) => a.team.length - b.team.length || a.i - b.i)[0];
+        smallest.team.push(member);
+      });
+
+      // Randomize each team's display order.
+      teams.forEach(team => team.splice(0, team.length, ...shuffled(team)));
+      lastTeams = teams;
+      renderTeams(teams);
+    }
+
+    function renderTeams(teams) {
+      const container = $('#teams');
+      container.innerHTML = '';
+      teams.forEach((team, i) => {
+        const card = document.createElement('section');
+        card.className = `team-card ${teamStyles[i].cls}`;
+        const title = document.createElement('h3');
+        title.textContent = `${teamStyles[i].name}（${team.length}人）`;
+        const ul = document.createElement('ul');
+        team.forEach(member => {
+          const li = document.createElement('li');
+          li.textContent = member.name;
+          if (member.experienced) li.classList.add('experienced');
+          ul.appendChild(li);
+        });
+        card.append(title, ul);
+        container.appendChild(card);
+      });
+      $('#copyResult').disabled = false;
+      $('#resultTitle').textContent = `チーム結果（計${teams.reduce((n,t) => n+t.length,0)}人）`;
+    }
+
+    $('#createTeams').addEventListener('click', makeTeams);
+
+    $('#copyResult').addEventListener('click', async () => {
+      if (!lastTeams.length) return;
+      const lines = lastTeams.map((team,i) => `${teamStyles[i].name}（${team.length}人）\n${team.map(m => m.name + (m.experienced ? '★' : '')).join('、')}`);
+      const text = '【チーム分け結果】\n' + lines.join('\n\n');
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch (error) {
+        const area = document.createElement('textarea');
+        area.value = text;
+        document.body.appendChild(area);
+        area.select();
+        document.execCommand('copy');
+        area.remove();
+      }
+      showToast('結果をコピーしました');
+    });
+
+    function showToast(message) {
+      const toast = $('#toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => toast.classList.remove('show'), 2200);
+    }
+  </script>
+</body>
+</html>
